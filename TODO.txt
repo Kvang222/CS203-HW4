@@ -1,0 +1,4 @@
+-Create the prepare() method within each coffee class (functions as a toString for the textfield)
+- Finish the payCoffee() method for each customer type
+- Finish the reciept() button that generates a receipt (creates a textile named “reciept_<orderID>.txt” with correctly formatted customer information
+- Finish the prepare button/method that prints out the coffee information for each active order and switches their status to passive
