@@ -226,7 +226,7 @@ public class GUI {
     public void setSplitScreen(JPanel leftPanel) {
         JPanel mainPanel = new JPanel(new GridLayout(1,2));
         JPanel rightPanel = new JPanel(new BorderLayout());
-        ImageIcon gif = new ImageIcon("images/Coffee.gif");
+        ImageIcon gif = new ImageIcon("CS203-HW4/images/Coffee.gif");
         JLabel gifLabel = new JLabel(gif);
         rightPanel.add(gifLabel,BorderLayout.CENTER);
         
