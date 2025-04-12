@@ -3,6 +3,11 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import javax.swing.Timer;
 
 public class GUI {
     JFrame frame;
@@ -37,10 +42,10 @@ public class GUI {
         textField = new JTextField(20);
         textField.setEditable(false);
         textField.setOpaque(true);
-        textField.setFont(new Font(Font.SERIF,Font.PLAIN,35));
+        textField.setFont(new Font(Font.SERIF,Font.PLAIN,24));
         textField.setHorizontalAlignment(JTextField.LEFT);
         textField.setBackground(new Color(255,255,255));
-        textField.setPreferredSize(new Dimension(200,150));
+        textField.setPreferredSize(new Dimension(800,150));
         frame.getContentPane().add(textField,BorderLayout.SOUTH);
     }
 
@@ -102,12 +107,12 @@ public class GUI {
         });
         view.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e){
-                //FIX
+                viewOrders();
             }
         });
         prepare.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e){
-                //FIX
+                prepareOrders();
             }
         });
         receipt.addActionListener(new ActionListener() {
@@ -128,27 +133,22 @@ public class GUI {
                         t4 = textField.getText().substring(49);
                         text = "Customer name: ";
                         textField.setText(text);
-                        t1 = textField.getText().substring(text.length());
                         count++;
                         break;
                     case 1:
+                        t1 = textField.getText().substring(text.length());
                         text = "Customer phone number: ";
                         textField.setText(text);
-                        t2 = textField.getText().substring(text.length());
                         count++;
                         break;
                     case 2:
+                        t2 = textField.getText().substring(text.length());
                         text = "Customer address: ";
                         textField.setText(text);
-                        t3 = textField.getText().substring(text.length());
                         count++;
                         break;
                     case 3:
-                        if (t4.equals("P")){
-                            cList.add(new PremiumCustomer(t1,t2,t3,t4));
-                        } else if (t4.equals("R")){
-                            cList.add(new RegularCustomer(t1, t2, t3, t4));;
-                        }
+                        t3 = textField.getText().substring(text.length());
                         textField.setEditable(false);
                         textField.setText("You may now order your coffee");
                         orderCoffee();
@@ -551,23 +551,60 @@ public class GUI {
                 switch(coffeeType){
                     case "Espresso":
                         orderedCoffee = new Espresso("Espresso",3.50,"Rich Concentrated Coffee",3,t7,t5,t6);
-                        oList.add(orderedCoffee);
                         break;
                     case "Filtered Coffee":
                         orderedCoffee = new FilteredCoffee("Filtered Coffee",2.75,"Smooth,Classic Brew", 5, t7, t6);
-                        oList.add(orderedCoffee);
                         break;
                     case "Cappuccino":
                         orderedCoffee = new Cappuccino("Cappuccino", 4.00, "Creamy Drink with a Foam Layer",120, t7, t5);
-                        oList.add(orderedCoffee);
                         break;
                     case "Mocha":
                         orderedCoffee = new Mocha("Mocha",4.50,"Chocolate Coffee Blend with Milk",250,t7,t6);
-                        oList.add(orderedCoffee);
                         break;
+                    default:
+                        return;
                 }
-                textField.setText("Order complete.");
-                createAndShowGUI();
+                
+                // Create customer first
+                Customer newCustomer;
+                if (t4.equals("P")){
+                    newCustomer = new PremiumCustomer(t1,t2,t3,t4);
+                } else {
+                    newCustomer = new RegularCustomer(t1, t2, t3, t4);
+                }
+                
+                // Add both to their respective lists
+                cList.add(newCustomer);
+                oList.add(orderedCoffee);
+                
+                // Show payment information
+                frame.getContentPane().remove(textField);
+                JLabel paymentLabel = new JLabel();
+                paymentLabel.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+                paymentLabel.setHorizontalAlignment(JLabel.CENTER);
+                paymentLabel.setPreferredSize(new Dimension(800, 150));
+                paymentLabel.setOpaque(true);
+                paymentLabel.setBackground(Color.WHITE);
+                paymentLabel.setText("<html><div style='text-align: center; padding: 20px;'>" + 
+                    newCustomer.payCoffee() + "</div></html>");
+                frame.getContentPane().add(paymentLabel, BorderLayout.SOUTH);
+                frame.revalidate();
+                frame.repaint();
+                
+                // Use Timer to show payment information for 3 seconds
+                Timer timer = new Timer(3000, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        frame.getContentPane().remove(paymentLabel);
+                        textField.setText("Order complete.");
+                        frame.getContentPane().add(textField, BorderLayout.SOUTH);
+                        frame.revalidate();
+                        frame.repaint();
+                        createAndShowGUI();
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
             }
         });
 
@@ -590,8 +627,297 @@ public class GUI {
         setSplitScreen(leftPanel);
     }
 
-    public static void receipt(){
-        //FIX
+    public void receipt() {
+        //Create receipts folder if there isn't one
+        File directory = new File("receipts");
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
+        //Clear the whole frame
+        frame.getContentPane().removeAll();
+        frame.getContentPane().revalidate();
+
+        //Add the logo
+        frame.getContentPane().add(logo, BorderLayout.NORTH);
+
+        //The main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        //The orders panel
+        JPanel ordersPanel = new JPanel();
+        ordersPanel.setLayout(new BoxLayout(ordersPanel, BoxLayout.Y_AXIS));
+        
+        //The scroll pane for orders
+        JScrollPane scrollPane = new JScrollPane(ordersPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        //Show orders
+        if (oList.isEmpty() || cList.isEmpty()) {
+            JLabel noOrders = new JLabel("No orders to generate receipts for!", JLabel.CENTER);
+            noOrders.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+            ordersPanel.add(noOrders);
+        } else {
+            for (int i = 0; i < oList.size() && i < cList.size(); i++) {
+                Coffee coffee = oList.get(i);
+                Customer customer = cList.get(i);
+                
+                //where the receipt file is generated
+                try {
+                    String filename = "receipts/receipt_" + (i + 1) + ".txt";
+                    FileWriter writer = new FileWriter(filename);
+                    BufferedWriter bufferedWriter = new BufferedWriter(writer);
+
+                    //Write and format the receipt content
+                    bufferedWriter.write("=== Coffee Heaven ===\n\n");
+                    bufferedWriter.write("Order #" + (i + 1) + "\n");
+                    bufferedWriter.write("Customer: " + customer.getName() + "\n");
+                    bufferedWriter.write("Customer Type: " + (customer instanceof PremiumCustomer ? "Premium" : "Regular") + "\n\n");
+                    
+                    bufferedWriter.write("=== Order Details ===\n");
+                    bufferedWriter.write("Coffee: " + coffee.getName() + "\n");
+                    bufferedWriter.write("Description: " + coffee.getDescription() + "\n");
+                    String extras = coffee.getExtraIngr();
+                    bufferedWriter.write("Extras: " + (extras.isEmpty() ? "None" : extras) + "\n\n");
+                    
+                    double price = coffee.getPrice();
+                    //Apply premium discount if applicable
+                    if (customer instanceof PremiumCustomer) {
+                        price = price * 0.9; // 10% discount
+                    }
+                    
+                    bufferedWriter.write("=== Price Breakdown ===\n");
+                    bufferedWriter.write(String.format("Base Price: $%.2f\n", coffee.getPrice()));
+                    if (customer instanceof PremiumCustomer) {
+                        bufferedWriter.write("Premium Discount: 10%\n");
+                        bufferedWriter.write(String.format("Final Price: $%.2f\n\n", price));
+                    } else {
+                        bufferedWriter.write(String.format("Final Price: $%.2f\n\n", price));
+                    }
+                    
+                    bufferedWriter.write("Thank you for choosing Coffee Heaven!\n");
+                    bufferedWriter.write("We hope to serve you again soon!\n");
+                    
+                    bufferedWriter.close();
+                    
+                    //Show receipt panel
+                    JPanel receiptPanel = new JPanel();
+                    receiptPanel.setLayout(new BoxLayout(receiptPanel, BoxLayout.Y_AXIS));
+                    receiptPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                    
+                    JLabel orderLabel = new JLabel("Receipt generated for Order #" + (i + 1));
+                    orderLabel.setFont(new Font(Font.SERIF, Font.BOLD, 18));
+                    
+                    JLabel customerLabel = new JLabel("Customer: " + customer.getName() + 
+                        " (" + (customer instanceof PremiumCustomer ? "Premium" : "Regular") + ")");
+                    JLabel fileLabel = new JLabel("Saved as: " + filename);
+                    fileLabel.setForeground(Color.BLUE);
+                    
+                    receiptPanel.add(orderLabel);
+                    receiptPanel.add(customerLabel);
+                    receiptPanel.add(fileLabel);
+                    receiptPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                    
+                    ordersPanel.add(receiptPanel);
+                    ordersPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                    
+                } catch (IOException e) {
+                    JLabel errorLabel = new JLabel("Error generating receipt for Order #" + (i + 1));
+                    errorLabel.setForeground(Color.RED);
+                    ordersPanel.add(errorLabel);
+                }
+            }
+        }
+        
+        //Back button
+        JButton backButton = new JButton("Back to Main Menu");
+        backButton.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                createAndShowGUI();
+            }
+        });
+        
+        //Add panels to frame
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(backButton, BorderLayout.SOUTH);
+        frame.getContentPane().add(mainPanel, BorderLayout.CENTER);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    public void viewOrders() {
+        //Clear frame
+        frame.getContentPane().removeAll();
+        frame.getContentPane().revalidate();
+
+        //Add logo
+        frame.getContentPane().add(logo, BorderLayout.NORTH);
+
+        //Main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        
+        //Orders panel
+        JPanel ordersPanel = new JPanel();
+        ordersPanel.setLayout(new BoxLayout(ordersPanel, BoxLayout.Y_AXIS));
+        
+        //Scroll pane for orders
+        JScrollPane scrollPane = new JScrollPane(ordersPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        //Show orders
+        if (oList.isEmpty() || cList.isEmpty()) {
+            JLabel noOrders = new JLabel("There are no orders to display!", JLabel.CENTER);
+            noOrders.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+            ordersPanel.add(noOrders);
+        } else {
+            for (int i = 0; i < oList.size() && i < cList.size(); i++) {
+                Coffee coffee = oList.get(i);
+                Customer customer = cList.get(i);
+                
+                //Order panel
+                JPanel orderPanel = new JPanel();
+                orderPanel.setLayout(new BoxLayout(orderPanel, BoxLayout.Y_AXIS));
+                orderPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                
+                //Add order info
+                JLabel orderLabel = new JLabel("Order #" + (i + 1));
+                orderLabel.setFont(new Font(Font.SERIF, Font.BOLD, 18));
+                
+                JLabel customerLabel = new JLabel("Customer: " + customer.getName() + " " +
+                    (customer instanceof PremiumCustomer ? "(Premium)" : "(Regular)"));
+                
+                JLabel coffeeLabel = new JLabel("Coffee: " + coffee.getName() + 
+                    " - $" + String.format("%.2f", coffee.getPrice()));
+                
+                JLabel statusLabel = new JLabel("Status: " + (coffee.isActive() ? "Active" : "Passive"));
+                statusLabel.setForeground(coffee.isActive() ? Color.GREEN : Color.RED);
+                
+                //Add labels to order panel
+                orderPanel.add(orderLabel);
+                orderPanel.add(customerLabel);
+                orderPanel.add(coffeeLabel);
+                orderPanel.add(statusLabel);
+                orderPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                
+                //Add to orders list
+                ordersPanel.add(orderPanel);
+                ordersPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            }
+        }
+        
+        //Back button
+        JButton backButton = new JButton("Back to Main Menu");
+        backButton.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                createAndShowGUI();
+            }
+        });
+        
+        //Add panels to frame
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(backButton, BorderLayout.SOUTH);
+        frame.getContentPane().add(mainPanel, BorderLayout.CENTER);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    public void prepareOrders() {
+        //Clear the whole frame
+        frame.getContentPane().removeAll();
+        frame.getContentPane().revalidate();
+
+        //Add logo
+        frame.getContentPane().add(logo, BorderLayout.NORTH);
+
+        //the main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        
+        //the orders panel
+        JPanel ordersPanel = new JPanel();
+        ordersPanel.setLayout(new BoxLayout(ordersPanel, BoxLayout.Y_AXIS));
+        
+        //Scroll pane for orders
+        JScrollPane scrollPane = new JScrollPane(ordersPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        // checking for active orders
+        boolean hasActiveOrders = false;
+        for (Coffee coffee : oList) {
+            if (coffee.isActive()) {
+                hasActiveOrders = true;
+                break;
+            }
+        }
+        
+        //Show orders
+        if (oList.isEmpty() || !hasActiveOrders) {
+            JLabel noOrders = new JLabel("No active orders to prepare", JLabel.CENTER);
+            noOrders.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+            ordersPanel.add(noOrders);
+        } else {
+            for (int i = 0; i < oList.size(); i++) {
+                Coffee coffee = oList.get(i);
+                if (!coffee.isActive()) continue; // Skip passive orders
+                
+                Customer customer = cList.get(i);
+                
+                //the order panel
+                JPanel orderPanel = new JPanel();
+                orderPanel.setLayout(new BoxLayout(orderPanel, BoxLayout.Y_AXIS));
+                orderPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                
+                //Add in the order info
+                JLabel orderLabel = new JLabel("Preparing Order #" + (i + 1));
+                orderLabel.setFont(new Font(Font.SERIF, Font.BOLD, 18));
+                
+                JLabel customerLabel = new JLabel("Customer: " + customer.getName() + " " +
+                    (customer instanceof PremiumCustomer ? "(Premium)" : "(Regular)"));
+                JLabel coffeeLabel = new JLabel("Coffee: " + coffee.getName());
+                JLabel detailsLabel = new JLabel("Details: " + coffee.getDescription());
+                JLabel priceLabel = new JLabel("Price: $" + String.format("%.2f", coffee.getPrice()));
+                
+                //Extra ingredients if any
+                String extras = coffee.getExtraIngr();
+                JLabel extrasLabel = new JLabel("Extras: " + (extras.isEmpty() ? "None" : extras));
+                
+                // when the coffee is prepared, it is marked as passive
+                coffee.prepare();
+                JLabel statusLabel = new JLabel("Status: Order prepared and marked as passive");
+                statusLabel.setForeground(Color.BLUE);
+                
+                //Add in all the labels
+                orderPanel.add(orderLabel);
+                orderPanel.add(customerLabel);
+                orderPanel.add(coffeeLabel);
+                orderPanel.add(detailsLabel);
+                orderPanel.add(priceLabel);
+                orderPanel.add(extrasLabel);
+                orderPanel.add(statusLabel);
+                orderPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                
+                //Add them to the panel
+                ordersPanel.add(orderPanel);
+                ordersPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            }
+        }
+        
+        //Back button
+        JButton backButton = new JButton("Back to Main Menu");
+        backButton.setFont(new Font(Font.SERIF, Font.PLAIN, 24));
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                createAndShowGUI();
+            }
+        });
+        
+        //Add panels to frame
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(backButton, BorderLayout.SOUTH);
+        frame.getContentPane().add(mainPanel, BorderLayout.CENTER);
+        frame.revalidate();
+        frame.repaint();
     }
 
     public static void main(String[] args) throws Exception {

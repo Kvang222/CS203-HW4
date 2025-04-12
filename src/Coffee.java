@@ -5,6 +5,7 @@ public class Coffee{
     private String description;
     private int calories;
     private String extraIngr;
+    private boolean isActive;
 
     //Constructor
     public Coffee(String name, Double price, String description, int calories, String extraIngr){
@@ -13,6 +14,7 @@ public class Coffee{
         this.description = description;
         this.calories = calories;
         this.extraIngr = extraIngr;
+        this.isActive = true;
     }
 
     //Setters
@@ -48,7 +50,17 @@ public class Coffee{
         return extraIngr;
     }
 
+    //Status methods
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
+
     //Prepare method
     public void prepare(){
+        this.isActive = false;
     }
 }

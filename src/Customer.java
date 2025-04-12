@@ -41,5 +41,5 @@ public abstract class Customer {
     }
 
     //Abstract method
-    public abstract void payCoffee();
+    public abstract String payCoffee();
 }

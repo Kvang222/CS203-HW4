@@ -5,7 +5,7 @@ public class RegularCustomer extends Customer{
     }
 
     //Abstract method
-    public void payCoffee(){
-        //FIX
+    public String payCoffee(){
+        return "Regular customer can pay for the coffee using credit card or cash.";
     }
 }
