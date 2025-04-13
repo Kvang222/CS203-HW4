@@ -12,4 +12,9 @@ public class FilteredCoffee extends Coffee{
     public String getBrewType(){
         return brewType;
     }
+
+    @Override
+    public void prepare(){
+        
+    }
 }

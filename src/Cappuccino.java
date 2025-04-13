@@ -12,4 +12,9 @@ public class Cappuccino extends Coffee{
     public double getFoamLevel(){
         return foamLevel;
     }
+
+    @Override
+    public void prepare(){
+        
+    }
 }

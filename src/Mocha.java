@@ -12,4 +12,9 @@ public class Mocha extends Coffee{
     public String getChocolateType(){
         return chocolateType;
     }
+
+    @Override
+    public void prepare(){
+        
+    }
 }   
